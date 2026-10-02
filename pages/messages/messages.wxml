@@ -3,7 +3,7 @@
   <view class="head">
     <text class="kicker">Messages</text>
     <text class="h1">买卖沟通与系统通知</text>
-    <text class="lead">站内消息用于确认品相、包装与发货时间。为防范交易风险，平台会拦截「加微信」「站外转账」等话术，保障双方走担保交易流程。</text>
+    <text class="lead">站内消息用于确认品相、包装与发货时间。为防范交易风险，平台将拦截「加微信」「站外转账」等话术，保障交易全程走担保流程。</text>
   </view>
 
   <!-- 未登录 -->
@@ -11,7 +11,7 @@
     <view class="empty">
       <text class="empty-mark">◇</text>
       <text>登录后查看消息</text>
-      <text class="muted small">买卖沟通与系统通知都会汇总到这里</text>
+      <text class="muted small">买卖沟通与系统通知统一汇总于此</text>
     </view>
     <view class="btn-row btn-row-center">
       <button class="btn btn-mini" bindtap="goLogin">登录 / 注册</button>
@@ -53,7 +53,7 @@
         </scroll-view>
 
         <view wx:else class="card">
-          <text class="muted small">还没有会话。在商品详情页点「联系卖家」即可开始沟通。</text>
+          <text class="muted small">暂无会话。在商品详情页点击「联系卖家」即可开始沟通。</text>
         </view>
 
         <!-- 聊天区 -->
@@ -66,7 +66,7 @@
           <scroll-view class="chat-box" scroll-y scroll-into-view="{{scrollInto}}" scroll-with-animation>
             <view wx:if="{{chatLoading}}" class="loading-tip">正在加载会话…</view>
             <block wx:else>
-              <view wx:if="{{chat.length === 0}}" class="loading-tip">还没有消息，打个招呼吧。</view>
+              <view wx:if="{{chat.length === 0}}" class="loading-tip">暂无消息记录。</view>
               <view
                 class="bubble {{item.mine ? 'bubble-mine' : 'bubble-theirs'}}"
                 wx:for="{{chat}}"
@@ -103,7 +103,7 @@
             <button class="btn btn-send" bindtap="send">发送</button>
           </view>
 
-          <text class="hint">平台会拦截「加微信」「站外转账」等话术；请勿在聊天中泄露个人敏感信息。</text>
+          <text class="hint">平台将拦截「加微信」「站外转账」等话术；请勿在沟通中泄露个人敏感信息。</text>
         </view>
       </block>
     </block>
@@ -118,7 +118,7 @@
       <view wx:if="{{notices.length === 0}}" class="empty">
         <text class="empty-mark">◇</text>
         <text>暂无通知</text>
-        <text class="muted small">订单流转、审核结果与降价提醒会出现在这里</text>
+        <text class="muted small">订单流转、审核结果与降价提醒将在此显示</text>
       </view>
 
       <!--

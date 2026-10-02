@@ -3,7 +3,7 @@ const ui = require("../../utils/ui.js");
 const report = require("../../utils/report.js");
 const { REPORT_REASONS } = require("../../utils/config.js");
 
-const QUICK_REPLIES = ["还在吗？", "能便宜一点吗？", "有原包装和凭证吗？"];
+const QUICK_REPLIES = ["请问还在吗？", "能否再优惠一些？", "有原包装和凭证吗？"];
 
 const TABS = [
   { key: "chat", label: "会话" },
@@ -249,7 +249,7 @@ Page({
     } else if (link.indexOf("messages") >= 0) {
       this.setData({ tab: "chat" });
     } else {
-      ui.toast("该通知指向运营后台，小程序端暂不开放");
+      ui.toast("该通知对应的功能在运营后台，小程序端暂不开放");
     }
   },
 

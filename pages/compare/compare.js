@@ -106,7 +106,7 @@ Page({
         official: original,
         secondhand,
         price,
-        spreadText: spread > 0 ? `比官方价低 ${spread}%` : "与官方价持平",
+        spreadText: spread > 0 ? `低于官方价 ${spread}%` : "与官方价持平",
         mallUrl: D.platformSearchUrl("mall", p.name),
         secondhandUrl: D.platformSearchUrl("secondhand", p.name)
       };
@@ -167,7 +167,7 @@ Page({
   },
 
   async clearHistory() {
-    const yes = await ui.confirm("清空后不可恢复，确定继续？", "清空搜索历史");
+    const yes = await ui.confirm("清除后不可恢复，是否继续？", "清空搜索历史");
     if (!yes) return;
     try {
       await Store.api("/api/search-history", { method: "DELETE" });
@@ -222,13 +222,13 @@ Page({
   onPlatform(e) {
     const id = e.currentTarget.dataset.id;
     if (id === "platform") {
-      ui.toast("本平台建议价即页面中的「本平台建议价」，无需跳转");
+      ui.toast("本平台建议价由系统直接给出，无需跳转查看");
       return;
     }
     const p = D.PLATFORMS.find((x) => x.id === id);
     const url = D.platformSearchUrl(id, this.data.keyword.trim() || "景区文创");
     if (!url) {
-      ui.toast("该平台没有可跳转的检索入口");
+      ui.toast("该平台暂未提供可跳转的检索入口");
       return;
     }
     wx.setClipboardData({
@@ -236,7 +236,7 @@ Page({
       success: () => {
         wx.showModal({
           title: p ? p.label : "同款检索",
-          content: "检索链接已复制。小程序无法直接打开外部网站，请到浏览器粘贴访问。",
+          content: "检索链接已复制。小程序无法直接打开外部网站，请在浏览器中粘贴访问。",
           showCancel: false,
           confirmText: "知道了"
         });
@@ -249,7 +249,7 @@ Page({
     if (!url) return;
     /* 卡片上的两个入口是按钮，事件会冒泡到卡片，这里要挡一下跳详情 */
     wx.setClipboardData({ data: url });
-    ui.toast("检索链接已复制，到浏览器粘贴即可");
+    ui.toast("检索链接已复制，请在浏览器中粘贴访问");
   },
 
   goProduct(e) {

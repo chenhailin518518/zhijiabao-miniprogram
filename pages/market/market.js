@@ -131,6 +131,7 @@ Page({
 
   async reload(silent = false) {
     if (!silent) this.setData({ loading: true });
+    this.loadingMore = false;
     try {
       const res = await Store.api(`/api/products?${this.toQueryString(this.currentQuery({ page: 1 }))}`);
       this.setData({
@@ -147,6 +148,9 @@ Page({
   },
 
   async loadMore() {
+    /* 触底和「加载更多」按钮都会调这里，不加锁会并发请求同一页并重复追加 */
+    if (this.loadingMore || !this.data.hasMore) return;
+    this.loadingMore = true;
     const next = this.data.page + 1;
     try {
       const res = await Store.api(`/api/products?${this.toQueryString(this.currentQuery({ page: next }))}`);
@@ -157,6 +161,8 @@ Page({
       });
     } catch (err) {
       ui.fail(err, "加载更多失败");
+    } finally {
+      this.loadingMore = false;
     }
   },
 
@@ -248,7 +254,7 @@ Page({
   async mineAction(e) {
     const { id, action, name } = e.currentTarget.dataset;
     if (action === "delete") {
-      const yes = await ui.confirm(`删除后不可恢复：「${name}」`, "删除商品");
+      const yes = await ui.confirm(`删除后不可恢复，确认删除「${name}」？`, "删除商品");
       if (!yes) return;
       try {
         await Store.api(`/api/products/${id}`, { method: "DELETE" });

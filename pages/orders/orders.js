@@ -135,17 +135,17 @@ Page({
     try {
       if (action === "pay") {
         const yes = await ui.confirm(
-          `应付 ${order.totalText}（商品 ${order.priceText} + 运费 ${order.freightText}）。\n当前为演示流程，不会产生真实扣款。`,
+          `应付 ${order.totalText}（商品 ${order.priceText} + 运费 ${order.freightText}）。\n当前为演示流程，不产生真实扣款。`,
           "确认付款"
         );
         if (!yes) return;
         body = {};
       } else if (action === "cancel") {
-        const reason = await ui.prompt("请填写取消原因", "取消订单", "例如：临时不需要了");
+        const reason = await ui.prompt("请填写取消原因", "取消订单", "例如：买家临时不再需要");
         if (reason === null) return;
         body = { reason: reason || "买家取消" };
       } else if (action === "refund") {
-        const reason = await ui.prompt("请填写售后原因（至少 4 个字）", "申请售后", "例如：收到时有破损");
+        const reason = await ui.prompt("请填写售后原因（不少于 4 个字）", "申请售后", "例如：收到时有破损");
         if (!reason) return;
         if (reason.length < 4) return ui.toast("售后原因至少 4 个字");
         body = { reason };

@@ -28,7 +28,7 @@
     return row || { id: scenicId, city: "", heat: 70, bonus: 1.0, retention: 0.65 };
   }
 
-  /* 结构化属性加成：把“限定/证书/包装/瑕疵”从正则猜测改为明确的开关 */
+  /* 结构化属性加成：把「限定/证书/包装/瑕疵」从正则猜测改为明确的开关 */
   function attributeBonus({ limited, hasCertificate, hasPackage, flawed, boughtAt } = {}) {
     const rows = [];
     let bonus = 1;
@@ -287,7 +287,7 @@
     const out = {};
     const has = (k) => input[k] !== undefined && input[k] !== null;
 
-    /* 字典不可用时退化为“只判非空”，避免因 site-data 未加载而误报全部非法 */
+    /* 字典不可用时退化为「只判非空」，避免因 site-data 未加载而误报全部非法 */
     const D = data();
     const inList = (list, v) => (list.length === 0 ? Boolean(v) : list.includes(v));
     const SCENIC_IDS = (D?.SCENICS || []).map((s) => s.id);
@@ -335,7 +335,7 @@
     } else if (!partial) out.freight = 0;
 
     const description = String(input.description || "").trim();
-    if (description.length > 300) errors.push({ field: "description", message: "品相说明不能超过 300 字" });
+    if (description.length > 300) errors.push({ field: "description", message: "品相说明不得超过 300 字" });
     if (has("description") || !partial) out.description = description;
 
     const images = Array.isArray(input.images) ? input.images : [];

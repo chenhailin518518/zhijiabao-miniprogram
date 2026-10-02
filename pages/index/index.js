@@ -8,7 +8,7 @@ const MODULES = [
     key: "estimate",
     kicker: "Valuation",
     title: "AI 智能估价",
-    desc: "按景区热度、品相、季节、供需四类系数给出建议挂牌价与合理区间，并附系数拆解。",
+    desc: "按景区热度、品相、季节、供需四类系数输出建议挂牌价与合理区间，并附系数拆解说明。",
     tab: true,
     url: "/pages/estimate/estimate"
   },
@@ -16,14 +16,14 @@ const MODULES = [
     key: "compare",
     kicker: "Compare",
     title: "全网比价",
-    desc: "同款文创在官方商城、综合电商、二手平台的参考价区间并列，同时给出平台建议价。",
+    desc: "同款文创在官方商城、综合电商与二手平台的参考价区间并列展示，并给出平台建议价。",
     url: "/pages/compare/compare"
   },
   {
     key: "market",
     kicker: "Market",
     title: "二手集市",
-    desc: "个人闲置与商户尾货同场流转，支持多图实拍、商品问答、收藏与降价提醒。",
+    desc: "个人闲置与商户尾货集中流转，支持多图实拍、商品问答、收藏与降价提醒。",
     tab: true,
     url: "/pages/market/market"
   },
@@ -31,29 +31,46 @@ const MODULES = [
     key: "orders",
     kicker: "Escrow",
     title: "担保交易与售后",
-    desc: "付款进入平台担保，确认收货后放款；支持发货、确认、取消、退款与评价全流程。",
+    desc: "付款进入平台担保，确认收货后放款，覆盖发货、确认、取消、退款与评价全流程。",
     url: "/pages/orders/orders"
   }
 ];
 
 /* 担保交易流程 */
 const ESCROW = [
-  { step: "01", title: "买家付款", desc: "款项进入平台担保账户，卖家能看到订单但拿不到钱。" },
-  { step: "02", title: "卖家发货", desc: "卖家填写快递公司与运单号，订单转为待收货。" },
-  { step: "03", title: "买家确认收货", desc: "确认后担保款项放给卖家，平台扣 2% 服务费。" },
-  { step: "04", title: "售后与评价", desc: "可发起售后；订单完成后双方互评，结果计入信用分。" }
+  { step: "01", title: "买家付款", desc: "款项进入平台担保账户，卖家可见订单但无法支取款项。" },
+  { step: "02", title: "卖家发货", desc: "卖家填写快递公司与运单号，订单状态转为待收货。" },
+  { step: "03", title: "买家确认收货", desc: "买家确认收货后，担保款项结算给卖家，平台扣收 2% 服务费。" },
+  { step: "04", title: "售后与评价", desc: "如有异议可发起售后；订单完成后双方互评，评价结果计入信用分。" }
 ];
 
-/* 首页实时数据的展示顺序与格式 */
-const OVERVIEW_ROWS = [
-  { key: "products", label: "在售商品" },
-  { key: "scenicCount", label: "覆盖景区" },
-  { key: "users", label: "注册用户" },
-  { key: "estimates", label: "累计估价" },
-  { key: "completedOrders", label: "完成订单" },
-  { key: "gmv", label: "成交额", money: true },
-  { key: "reviews", label: "累计评价" },
-  { key: "avgScore", label: "平均评分" }
+/* 首页实时数据：先回答"这里靠不靠谱"，再回答"这里有多少东西"。
+   零值指标（估价 / 订单 / 成交额）排在最后并弱化，避免首屏先看到一串 0。 */
+const STAT_GROUPS = [
+  {
+    key: "trust",
+    items: [
+      { key: "avgScore", label: "平均评分", score: true },
+      { key: "reviews", label: "累计评价" },
+      { key: "users", label: "注册用户" }
+    ]
+  },
+  {
+    key: "supply",
+    items: [
+      { key: "products", label: "在售商品" },
+      { key: "scenicCount", label: "覆盖景区" }
+    ]
+  },
+  {
+    key: "trade",
+    muted: true,
+    items: [
+      { key: "estimates", label: "累计估价" },
+      { key: "completedOrders", label: "完成订单" },
+      { key: "gmv", label: "成交额", money: true }
+    ]
+  }
 ];
 
 Page({
@@ -61,7 +78,7 @@ Page({
     theme: "light",
     mode: "offline",
     loading: true,
-    stats: [],
+    statGroups: [],
     modules: MODULES,
     escrow: ESCROW,
     categories: D.CATEGORIES,
@@ -90,7 +107,7 @@ Page({
       this.setData({
         loading: false,
         scenics: scenicList,
-        stats: this.buildStats(overview.overview),
+        statGroups: this.buildStats(overview.overview),
         hot: this.decorate(hot.products || [])
       });
     } catch (err) {
@@ -113,13 +130,21 @@ Page({
 
   buildStats(overview) {
     if (!overview) return [];
-    return OVERVIEW_ROWS.map((row) => {
-      const raw = overview[row.key];
-      return {
-        label: row.label,
-        value: row.money ? ui.money(raw) : String(raw === undefined ? 0 : raw)
-      };
-    });
+    return STAT_GROUPS.map((group) => ({
+      key: group.key,
+      muted: !!group.muted,
+      items: group.items.map((item) => {
+        const raw = overview[item.key];
+        const num = Number(raw) || 0;
+        return {
+          key: item.key,
+          label: item.label,
+          score: !!item.score,
+          value: item.money ? ui.money(num) : String(raw === undefined ? 0 : raw),
+          blank: num === 0
+        };
+      })
+    }));
   },
 
   /* 列表项补上小程序可用的图片路径与格式化字段 */
@@ -172,7 +197,7 @@ Page({
 
   async resetDemo() {
     const yes = await ui.confirm(
-      "会清空本地新增的商品、订单、收藏与估价记录，恢复到内置演示数据。",
+      "将清空本机新增的商品、订单、收藏与估价记录，并恢复为内置演示数据。",
       "重置演示数据"
     );
     if (!yes) return;

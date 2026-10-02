@@ -4,8 +4,8 @@
   <view class="hero">
     <view class="hero-glow"></view>
     <text class="kicker">Scenic Cultural Creative</text>
-    <text class="h1">把景区文创的闲置价值，算清楚再流转</text>
-    <text class="lead">AI 估价给出建议挂牌价，全网比价给出参考区间，担保交易保证付款与放款两清。</text>
+    <text class="h1">景区文创闲置价值评估与流转</text>
+    <text class="lead">AI 估价输出建议挂牌价，全网比价提供参考区间，担保交易保障货款两清。</text>
     <view class="hero-badges">
       <text class="hero-badge">{{mode === 'online' ? '在线模式' : '本地演示模式'}}</text>
       <text class="hero-badge">{{categories.length}} 个品类 · {{scenics.length}} 个景区</text>
@@ -20,13 +20,27 @@
         <text class="h2">平台实时数据</text>
       </view>
     </view>
-    <view wx:if="{{loading}}" class="loading-tip">正在读取数据…</view>
-    <view wx:else class="grid-4">
-      <view class="stat" wx:for="{{stats}}" wx:key="label">
-        <text class="stat-value">{{item.value}}</text>
-        <text class="stat-label">{{item.label}}</text>
+    <view wx:if="{{loading}}" class="loading-tip">正在加载数据…</view>
+    <block wx:else>
+      <view
+        class="stat-row stat-row-{{group.items.length}}{{group.muted ? ' stat-row-muted' : ''}}"
+        wx:for="{{statGroups}}"
+        wx:for-item="group"
+        wx:key="key"
+      >
+        <view
+          class="stat{{item.score ? ' stat-score' : ''}}{{item.blank ? ' stat-blank' : ''}}"
+          wx:for="{{group.items}}"
+          wx:key="key"
+        >
+          <view class="stat-value-line">
+            <text wx:if="{{item.score}}" class="stat-star">★</text>
+            <text class="stat-value">{{item.value}}</text>
+          </view>
+          <text class="stat-label">{{item.label}}</text>
+        </view>
       </view>
-    </view>
+    </block>
   </view>
 
   <!-- 功能模块 -->
@@ -34,7 +48,7 @@
     <view class="section-head">
       <view>
         <text class="kicker">Core Modules</text>
-        <text class="h2">四个模块，一条流转链路</text>
+        <text class="h2">四个核心模块</text>
       </view>
     </view>
     <view class="module" wx:for="{{modules}}" wx:key="key" data-url="{{item.url}}" data-tab="{{item.tab}}" bindtap="goModule">
@@ -54,7 +68,7 @@
         <text class="kicker">Categories</text>
         <text class="h2">按品类浏览</text>
       </view>
-      <text class="muted small">点击跳到集市筛选</text>
+      <text class="muted small">点击进入集市筛选</text>
     </view>
     <view class="tag-line">
       <text class="chip" wx:for="{{categories}}" wx:key="*this" data-category="{{item}}" bindtap="goCategory">{{item}}</text>
@@ -72,7 +86,7 @@
     </view>
     <view wx:if="{{!loading && hot.length === 0}}" class="empty">
       <text class="empty-mark">◇</text>
-      <text>暂时没有在售商品</text>
+      <text>暂无在售商品</text>
     </view>
     <view class="product" wx:for="{{hot}}" wx:key="id" data-id="{{item.id}}" bindtap="goProduct">
       <image class="product-thumb" src="{{item.cover}}" mode="aspectFill" lazy-load />
@@ -96,7 +110,7 @@
     <view class="section-head">
       <view>
         <text class="kicker">Escrow Flow</text>
-        <text class="h2">担保交易怎么走</text>
+        <text class="h2">担保交易流程</text>
       </view>
     </view>
     <view class="escrow" wx:for="{{escrow}}" wx:key="step">
@@ -113,9 +127,9 @@
     <view class="section-head">
       <view>
         <text class="kicker">Culture Wall</text>
-        <text class="h2">8 个景区的文创底稿</text>
+        <text class="h2">8 个景区的文创资料</text>
       </view>
-      <text class="muted small">点击跳集市</text>
+      <text class="muted small">点击进入集市</text>
     </view>
     <view class="scenic-card" wx:for="{{scenics}}" wx:key="id" data-scenic="{{item.id}}" bindtap="goScenic">
       <view class="between">
@@ -142,11 +156,11 @@
       </view>
       <view class="list-row">
         <text class="list-row-label">内容安全</text>
-        <text class="list-row-value">敏感词过滤 + 人工审核</text>
+        <text class="list-row-value">敏感词过滤与人工审核</text>
       </view>
       <view class="list-row">
         <text class="list-row-label">支付环节</text>
-        <text class="list-row-value">演示流程，未接通真实支付</text>
+        <text class="list-row-value">演示流程，未接入真实支付</text>
       </view>
       <view class="list-row" bindtap="goLegal">
         <text class="list-row-label">用户协议与隐私说明</text>
@@ -160,6 +174,6 @@
   </view>
 
   <view class="foot-note">
-    <text class="muted tiny">智价宝 v3.0 · 小程序版 · 数据与业务规则与 Web 版共用同一份实现</text>
+    <text class="muted tiny">智价宝 v3.0 小程序版 · 与网页版共用同一套估价规则与交易流程</text>
   </view>
 </view>

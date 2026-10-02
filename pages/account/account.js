@@ -56,7 +56,10 @@ Page({
         });
       } else {
         const res = await Store.api("/api/addresses");
-        this.setData({ addresses: res.addresses || [] });
+        /* 本地模式返回 isDefault，在线模式下 MySQL 原样返回 is_default，这里统一成前端字段 */
+        this.setData({
+          addresses: (res.addresses || []).map((a) => ({ ...a, isDefault: a.isDefault || a.is_default || 0 }))
+        });
       }
       this.setData({ loading: false });
     } catch (err) {
@@ -104,7 +107,7 @@ Page({
 
   async setAlert(e) {
     const { id, price } = e.currentTarget.dataset;
-    const input = await ui.prompt(`当前售价 ¥${price}，提醒价需低于该价格`, "设置降价提醒", "例如 120");
+    const input = await ui.prompt(`当前售价 ¥${price}，提醒价需低于当前售价`, "设置降价提醒", "例如 120");
     if (!input) return;
     try {
       const res = await Store.api(`/api/favorites/${id}/alert`, {
@@ -121,7 +124,7 @@ Page({
   /* ---------- 足迹 ---------- */
 
   async clearFootprints() {
-    const yes = await ui.confirm("清空全部浏览足迹？", "清空足迹");
+    const yes = await ui.confirm("确认清空全部浏览足迹？", "清空足迹");
     if (!yes) return;
     try {
       await Store.api("/api/footprints", { method: "DELETE" });
@@ -149,7 +152,7 @@ Page({
   async saveAddress() {
     const { name, phone, region, detail, isDefault } = this.data.form;
     if (!name.trim()) return ui.toast("请填写收货人姓名");
-    if (!/^1[3-9]\d{9}$/.test(phone.trim())) return ui.toast("请填写 11 位有效手机号");
+    if (!/^1[3-9]\d{9}$/.test(phone.trim())) return ui.toast("请输入 11 位有效手机号");
     if (!region.trim()) return ui.toast("请填写所在地区");
     if (!detail.trim()) return ui.toast("请填写详细地址");
     try {
@@ -176,7 +179,7 @@ Page({
   },
 
   async deleteAddress(e) {
-    const yes = await ui.confirm("删除该收货地址？", "删除地址");
+    const yes = await ui.confirm("确认删除该收货地址？", "删除地址");
     if (!yes) return;
     try {
       await Store.api(`/api/addresses/${e.currentTarget.dataset.id}`, { method: "DELETE" });

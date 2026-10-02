@@ -82,9 +82,11 @@ Page({
           : null,
         favorited: !!p.favorited,
         canBuy: !isOwner && p.status === "在售"
+      }, () => {
+        /* canvas 位于 wx:elif="{{product}}" 分支内，要等这一帧渲染完才取得到节点 */
+        this.drawPriceChart(p.priceHistory);
       });
 
-      this.drawPriceChart(p.priceHistory);
       if (isLogin) await this.loadAddresses();
     } catch (err) {
       this.setData({ loading: false });
@@ -98,7 +100,8 @@ Page({
       const list = res.addresses || [];
       this.setData({
         addresses: list.map((a) => ({ ...a, label: `${a.name} ${a.phone} ${a.region}${a.detail}` })),
-        addressIndex: Math.max(0, list.findIndex((a) => a.isDefault))
+        /* 本地模式返回 isDefault，在线模式下 MySQL 原样返回 is_default */
+        addressIndex: Math.max(0, list.findIndex((a) => a.isDefault || a.is_default))
       });
     } catch (err) {
       this.setData({ addresses: [] });
@@ -107,14 +110,22 @@ Page({
 
   /* ---------- 价格走势图 ---------- */
 
-  drawPriceChart(history) {
+  drawPriceChart(history, retry = 2) {
     const series = history && history.series;
     if (!series || series.length < 2) return;
+
+    const again = () => this.drawPriceChart(history, retry - 1);
 
     const query = wx.createSelectorQuery().in(this);
     query.select("#priceChart").fields({ node: true, size: true }).exec((res) => {
       const item = res && res[0];
-      if (!item || !item.node) return;
+      if (!item || !item.node || !item.width || !item.height) {
+        /* 节点或尺寸还没就绪时退一帧重试，否则会静默不画、页面无任何报错 */
+        if (retry > 0) {
+          if (wx.nextTick) wx.nextTick(again); else setTimeout(again, 60);
+        }
+        return;
+      }
       const canvas = item.node;
       const ctx = canvas.getContext("2d");
       const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
@@ -219,7 +230,7 @@ Page({
       return;
     }
     if (!this.data.addresses.length) {
-      const yes = await ui.confirm("还没有收货地址，先去添加一个？", "缺少收货地址");
+      const yes = await ui.confirm("尚未添加收货地址，是否先添加？", "缺少收货地址");
       if (yes) wx.navigateTo({ url: "/pages/account/account?tab=addresses" });
       return;
     }
@@ -252,7 +263,7 @@ Page({
     }
     const seller = this.data.product.seller;
     if (!seller || !seller.id) {
-      ui.toast("该商品由平台代管，暂不支持站内沟通，可在下方提问里留言");
+      ui.toast("该商品由平台代管，暂不支持站内沟通，可在下方问答区留言");
       return;
     }
     wx.navigateTo({ url: `/pages/messages/messages?peer=${seller.id}&name=${encodeURIComponent(seller.name)}` });

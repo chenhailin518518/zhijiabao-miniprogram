@@ -18,7 +18,7 @@
       <view wx:if="{{favorites.length === 0}}" class="empty">
         <text class="empty-mark">☆</text>
         <text>还没有收藏任何商品</text>
-        <text class="muted small">在商品详情页点「收藏」即可加入</text>
+        <text class="muted small">在商品详情页点击「收藏」即可加入</text>
       </view>
       <view class="card" wx:else>
         <view class="fav-row" wx:for="{{favorites}}" wx:key="id">

@@ -165,7 +165,7 @@ Page({
   },
 
   async logout() {
-    const yes = await ui.confirm("退出后需要重新登录才能查看订单与收藏。", "退出登录");
+    const yes = await ui.confirm("退出后需重新登录才能查看订单与收藏。", "退出登录");
     if (!yes) return;
     await Store.logout();
     await this.refresh();
@@ -173,7 +173,7 @@ Page({
   },
 
   async closeAccount() {
-    const yes = await ui.confirm("注销后该账号将无法登录，此操作不可恢复。", "注销账号");
+    const yes = await ui.confirm("注销后该账号将无法登录，且操作不可恢复。", "注销账号");
     if (!yes) return;
     try {
       await Store.closeAccount();
@@ -191,7 +191,7 @@ Page({
   },
 
   async resetDemo() {
-    const yes = await ui.confirm("会清空本地新增数据并恢复内置演示数据，登录状态也会一并清除。", "重置演示数据");
+    const yes = await ui.confirm("将清空本机新增数据并恢复内置演示数据，登录状态一并清除。", "重置演示数据");
     if (!yes) return;
     Store.resetLocal();
     await this.refresh();

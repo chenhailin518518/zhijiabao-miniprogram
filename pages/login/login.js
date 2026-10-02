@@ -62,7 +62,7 @@ Page({
   async sendCode() {
     const phone = this.data.form.phone.trim();
     if (!/^1[3-9]\d{9}$/.test(phone)) {
-      ui.toast("请先填写 11 位有效手机号");
+      ui.toast("请输入 11 位有效手机号");
       return;
     }
     try {

@@ -2,8 +2,8 @@
 
   <view class="head">
     <text class="kicker">Second-hand Market</text>
-    <text class="h1">个人闲置与商户尾货，一屏流转</text>
-    <text class="lead">商品经过发布校验与平台审核后上架；支持多图实拍、商品问答、收藏与降价提醒。所有交易走平台担保。</text>
+    <text class="h1">个人闲置与商户尾货集中流转</text>
+    <text class="lead">商品经发布校验与平台审核后上架，支持多图实拍、商品问答、收藏与降价提醒；全部交易纳入平台担保。</text>
   </view>
 
   <!-- 搜索 -->
@@ -70,7 +70,7 @@
   <view wx:elif="{{list.length === 0}}" class="empty">
     <text class="empty-mark">◇</text>
     <text>没有符合条件的商品</text>
-    <text class="muted small">试试重置筛选条件</text>
+    <text class="muted small">可重置筛选条件后重试</text>
   </view>
 
   <view wx:else>
@@ -111,7 +111,7 @@
     </view>
 
     <view wx:if="{{!isLogin}}" class="card">
-      <text class="muted small">登录后可以查看和管理自己发布的商品。</text>
+      <text class="muted small">登录后可查看与管理本人发布的商品。</text>
       <view class="btn-row">
         <button class="btn btn-mini" bindtap="goLogin">立即登录</button>
       </view>
@@ -119,7 +119,7 @@
 
     <view wx:elif="{{myProducts.length === 0}}" class="empty">
       <text class="empty-mark">◇</text>
-      <text>还没有发布过商品</text>
+      <text>暂无发布记录</text>
     </view>
 
     <view wx:else class="card">
@@ -130,7 +130,7 @@
           <view class="tag-line mine-tags">
             <text class="tag {{item.statusClass}}">{{item.status}}</text>
             <text class="muted tiny">{{item.priceText}}</text>
-            <text class="muted tiny">浏览 {{item.views}}</text>
+            <text class="muted tiny">浏览 {{item.views}} 次</text>
           </view>
           <text wx:if="{{item.rejectReason}}" class="reject">驳回原因：{{item.rejectReason}}</text>
           <view class="btn-row" wx:if="{{item.myActions.length}}">

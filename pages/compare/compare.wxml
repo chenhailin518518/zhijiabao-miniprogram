@@ -2,8 +2,8 @@
 
   <view class="head">
     <text class="kicker">Price Radar</text>
-    <text class="h1">全网比价，找到文创的合理价</text>
-    <text class="lead">三价对照：景区官方指导价（正品但最高）、二手成交参考价（约当前售价的 94%）、智价宝建议价。价格走势为按商品基准价确定性生成的演示数据，已在图表上标注；页面提供跳转到电商与二手平台检索同款的入口，便于人工核对。</text>
+    <text class="h1">全网比价，判断文创合理价位</text>
+    <text class="lead">三价对照：景区官方指导价（正品渠道，价格最高）、二手成交参考价（约为当前售价的 94%）、智价宝建议价。价格走势为按商品基准价确定性生成的演示数据，已在图表上标注；页面提供电商与二手平台的同款检索入口，便于人工核对。</text>
   </view>
 
   <!-- 搜索 -->
@@ -80,7 +80,7 @@
       >{{item}}</text>
       <text class="link-btn" bindtap="clearHistory">清空</text>
     </block>
-    <text wx:else class="muted small">搜索关键词会记录在账号中，便于下次快速比价</text>
+    <text wx:else class="muted small">搜索关键词会记录在账号中，便于下次比价</text>
   </view>
 
   <!-- 平台入口 -->
@@ -101,7 +101,7 @@
   <view wx:elif="{{list.length === 0}}" class="empty">
     <text class="empty-mark">◇</text>
     <text>没有符合条件的商品</text>
-    <text class="muted small">试试放宽价格上限或重置筛选</text>
+    <text class="muted small">可放宽价格上限或重置筛选条件</text>
     <view class="btn-row btn-row-center">
       <button class="btn btn-ghost btn-mini" bindtap="resetFilter">重置筛选</button>
     </view>

@@ -2,8 +2,8 @@
 
   <view class="head">
     <text class="kicker">AI Valuation</text>
-    <text class="h1">填几个字段，得到建议挂牌价</text>
-    <text class="lead">估价按景区热度、品相、季节、供需四类系数计算，结果含合理区间与置信度。实拍图仅作商品留档。</text>
+    <text class="h1">填写基本信息，获取建议挂牌价</text>
+    <text class="lead">估价依据景区热度、品相、季节、供需四类系数计算，结果包含合理区间与置信度。实拍图仅作商品留档，不参与价格计算。</text>
   </view>
 
   <!-- 实拍图 -->
@@ -11,7 +11,7 @@
     <text class="label">商品实拍图（可选）</text>
     <view class="upload" wx:if="{{!photo}}" bindtap="choosePhoto">
       <text class="upload-icon">＋</text>
-      <text class="muted small">点击从相册选择或拍照</text>
+      <text class="muted small">点击从相册选择或拍摄</text>
     </view>
     <view class="upload-preview" wx:else>
       <image class="upload-img" src="{{photo}}" mode="aspectFill" bindtap="choosePhoto" />
@@ -45,7 +45,7 @@
 
     <view class="form-row">
       <text class="label">购买原价（元）</text>
-      <input class="field" type="number" value="{{originalPrice}}" maxlength="6" bindinput="onPriceInput" placeholder="景区购买时的小票价格" />
+      <input class="field" type="number" value="{{originalPrice}}" maxlength="6" bindinput="onPriceInput" placeholder="景区购买时的小票金额" />
     </view>
 
     <view class="form-row">
@@ -56,7 +56,7 @@
           <text class="picker-arrow">▾</text>
         </view>
       </picker>
-      <text class="hint">购入越久，保值衰减越多</text>
+      <text class="hint">购入时间越久，保值衰减越明显</text>
     </view>
 
     <view class="form-row">
@@ -92,7 +92,7 @@
     <view class="form-row">
       <text class="label">文字描述（可选）</text>
       <textarea class="field-area" value="{{note}}" maxlength="200" bindinput="onNoteInput" placeholder="例如：锦盒边角有一道压痕，扇面完好未使用" />
-      <text class="hint">描述里的「限定」「带证书」「包装完整」等词会被识别为加成项</text>
+      <text class="hint">描述中出现「限定」「带证书」「包装完整」等词时，将识别为加成项</text>
     </view>
 
     <button class="btn btn-block" bindtap="startEstimate" disabled="{{running}}">
@@ -171,7 +171,7 @@
     </view>
 
     <view wx:if="{{!isLogin}}" class="card">
-      <text class="muted small">登录后估价记录会保存到账号下，方便复看与对比。</text>
+      <text class="muted small">登录后估价记录将保存至账号，便于查看与对比。</text>
       <view class="btn-row">
         <button class="btn btn-mini" bindtap="goLogin">立即登录</button>
       </view>
@@ -179,7 +179,7 @@
 
     <view wx:elif="{{history.length === 0}}" class="empty">
       <text class="empty-mark">◇</text>
-      <text>还没有估价记录</text>
+      <text>暂无估价记录</text>
     </view>
 
     <view wx:else class="card">
@@ -199,6 +199,6 @@
   </view>
 
   <view class="foot-note">
-    <text class="muted tiny">估价结果由公开参数与内置系数模型计算，仅作为挂牌参考</text>
+    <text class="muted tiny">估价结果依据公开参数与内置系数模型计算，仅供挂牌参考</text>
   </view>
 </view>

@@ -1,0 +1,9 @@
+{
+  "name": "zhijiabao-miniprogram",
+  "version": "1.0.0",
+  "private": true,
+  "description": "智价宝 · 景区文创闲置流转平台（微信小程序）",
+  "dependencies": {
+    "@tencent-ai/workbuddy-cloud-sdk": "^0.1.2-dev.1b37f73.202609222026"
+  }
+}

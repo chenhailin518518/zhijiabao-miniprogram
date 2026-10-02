@@ -37,10 +37,69 @@ function fromNow(input) {
   return formatDate(d);
 }
 
-/* 商品图片：站点字典里存的是 Web 相对路径，小程序里替换为本地 assets 路径 */
+/*
+  商品图片路径归一。
+
+  五种来源，处理方式不同，混在一起就会白图：
+    站点字典   assets/img/product-xxx.jpg   Web 相对路径 -> 在线档换托管地址，离线档补前导斜杠
+    本地发布   wxfile://store_xxx.jpg        已落盘的本地文件 -> 原样返回，补斜杠会变成 /wxfile://...
+    在线发布   /uploads/xxx.jpg              服务端相对路径 -> 在线模式下补上 API 域名
+    云端发布   users/<uid>/products/xxx.jpg  云端对象键 -> 查显示缓存换成临时地址（见 cloud-media.js）
+    外部图床   https://xxx/yyy.jpg           完整地址 -> 原样返回
+
+  云端对象键在显示缓存里查不到时退回占位图：签发临时地址是异步的、会过期，
+  同步渲染这一层拿不到也不能留个坏图框。
+
+  在线档取图床、离线档取包内副本，是为了满足一个硬约束：
+  比赛现场断网也要能完整演示，商品图不能因为取不到远端就变成空白。
+*/
+const { API_BASE, MEDIA } = require("./config.js");
+const CloudMedia = require("./cloud-media.js");
+
+const PLACEHOLDER = "assets/img/product-pin.jpg";
+
+/*
+  当前运行档位。
+
+  必须在使用时读，不能在模块加载时读：档位是 store.js 的 init() 异步探测出来的，
+  模块加载那一刻还没定，提前读会永远拿到初始值。
+  store.js 通过 require 惰性取，避免它和本模块之间的加载顺序互相牵制。
+*/
+function runtimeMode() {
+  try {
+    const app = getApp();
+    const mode = app && app.globalData && app.globalData.mode;
+    if (mode && mode !== "checking") return mode;
+  } catch (e) { /* 页面之外调用，继续往下取 */ }
+  try {
+    return require("./store.js").mode || "offline";
+  } catch (e) {
+    return "offline";
+  }
+}
+
+function isOnline() {
+  const mode = runtimeMode();
+  return mode === "cloud" || mode === "online";
+}
+
+/* 包内静态图：在线档取托管地址，离线档取包内副本 */
+function staticImage(rel) {
+  if (MEDIA.remote && MEDIA.base && isOnline()) return `${MEDIA.base}/${rel}`;
+  return `/${rel}`;
+}
+
 function productImage(path) {
-  if (!path) return "/assets/img/product-pin.webp";
-  return `/${String(path).replace(/^\/+/, "")}`;
+  if (!path) return staticImage(PLACEHOLDER);
+  const p = String(path);
+  /* 已是本地文件、云存储文件标识或完整 http(s) 地址，都能直接当图片地址用 */
+  if (/^(wxfile:\/\/|cloud:\/\/|https?:\/\/)/.test(p)) return p;
+  if (CloudMedia.isCloudKey(p)) return CloudMedia.get(p) || staticImage(PLACEHOLDER);
+  const rel = p.replace(/^\/+/, "");
+  if (API_BASE && rel.indexOf("uploads/") === 0) return `${API_BASE}/${rel}`;
+  /* 只对包内静态图目录换地址：托管站上只有这一批同名副本，其他相对路径换了就是 404 */
+  if (rel.indexOf("assets/img/") === 0) return staticImage(rel);
+  return `/${rel}`;
 }
 
 function toast(title, icon = "none") {
@@ -86,8 +145,21 @@ function prompt(content, title = "请输入", placeholder = "") {
 }
 
 /* 统一处理 err：把 Error 的 message 弹出来，避免每个页面写一遍 try/catch 提示 */
-function fail(err, fallback = "操作失败") {
+function fail(err, fallback = "操作失败，请稍后重试") {
   const message = (err && err.message) || fallback;
+  /* 带 hint 的失败要说清「怎么解决」，toast 放不下，改用弹窗 */
+  if (err && err.hint) {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: message,
+        content: err.hint,
+        showCancel: false,
+        confirmText: "确定",
+        confirmColor: "#244853",
+        complete: () => resolve()
+      });
+    });
+  }
   wx.showToast({ title: message, icon: "none", duration: 2200 });
 }
 

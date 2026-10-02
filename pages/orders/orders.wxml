@@ -3,7 +3,7 @@
   <view class="head">
     <text class="kicker">Orders &amp; Escrow</text>
     <text class="h1">订单与售后</text>
-    <text class="lead">付款进入平台担保，确认收货后放款给卖家。当前为演示流程，不会产生真实资金流转。</text>
+    <text class="lead">付款进入平台担保，确认收货后放款给卖家。当前为演示流程，不产生真实资金流转。</text>
   </view>
 
   <!-- 身份切换 -->
@@ -35,7 +35,7 @@
   <view wx:elif="{{orders.length === 0}}" class="empty">
     <text class="empty-mark">◇</text>
     <text>这里还没有订单</text>
-    <text class="muted small">去集市看看有哪些文创在流转</text>
+    <text class="muted small">前往集市浏览在售文创</text>
     <view class="btn-row center-row">
       <button class="btn btn-mini" bindtap="goMarket">去集市</button>
     </view>

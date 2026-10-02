@@ -3,7 +3,7 @@
   <view class="head">
     <text class="kicker">Publish</text>
     <text class="h1">发布闲置</text>
-    <text class="lead">商品需经过发布校验与平台审核后才会出现在集市。描述与名称会做敏感词过滤。</text>
+    <text class="lead">商品经发布校验与平台审核后才会出现在集市。名称与描述将进行敏感词过滤。</text>
   </view>
 
   <view class="card suggest" wx:if="{{suggested}}">
@@ -12,7 +12,7 @@
       <text class="suggest-name">{{suggested.name}}</text>
       <text class="price">{{suggested.priceText}}</text>
     </view>
-    <text class="hint">已自动填入期望价与描述，可按实际品相调整</text>
+    <text class="hint">已自动填入期望价与描述，可依据实际品相调整</text>
   </view>
 
   <!-- 图片 -->
@@ -83,7 +83,7 @@
     <view class="form-row">
       <text class="label">期望售价（元）</text>
       <input class="field" type="digit" maxlength="6" value="{{form.price}}" data-key="price" bindinput="onInput" placeholder="1-100000" />
-      <text class="hint">不能高于原价的 120%，超出会被校验拦下</text>
+      <text class="hint">不得高于原价的 120%，超出将被校验拦截</text>
     </view>
     <view class="form-row">
       <text class="label">购买原价（元）</text>
@@ -98,7 +98,7 @@
   <!-- 描述 -->
   <view class="card">
     <text class="label">品相说明</text>
-    <textarea class="field-area" maxlength="300" value="{{form.description}}" data-key="description" bindinput="onInput" placeholder="说明使用痕迹、配件是否齐全、有无瑕疵，越具体越好成交" />
+    <textarea class="field-area" maxlength="300" value="{{form.description}}" data-key="description" bindinput="onInput" placeholder="请说明使用痕迹、配件是否齐全及有无瑕疵，描述越具体越便于成交" />
     <text class="hint">最长 300 字</text>
   </view>
 

@@ -174,7 +174,7 @@
     <view class="buy-bar">
       <view class="buy-addr" wx:if="{{isLogin && addresses.length}}">
         <picker mode="selector" range="{{addresses}}" range-key="label" value="{{addressIndex}}" bindchange="onAddressChange">
-          <text class="buy-addr-text">收货：{{addresses[addressIndex].label}} ▾</text>
+          <text class="buy-addr-text">收货地址：{{addresses[addressIndex].label}} ▾</text>
         </picker>
       </view>
       <view class="buy-actions">

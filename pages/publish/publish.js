@@ -103,14 +103,15 @@ Page({
 
   async addImages() {
     if (this.data.images.length >= D.UPLOAD.maxCount) {
-      ui.toast(`最多上传 ${D.UPLOAD.maxCount} 张`);
+      ui.toast(`最多上传 ${D.UPLOAD.maxCount} 张图片`);
       return;
     }
     try {
       const paths = await Upload.pickToPaths(D.UPLOAD.maxCount - this.data.images.length);
       this.setData({ images: this.data.images.concat(paths) });
     } catch (err) {
-      ui.fail(err, "图片处理失败");
+      /* 用户主动取消不提示，否则一个「图片处理失败」的 toast 会莫名其妙地弹出来 */
+      if (!err.cancelled) ui.fail(err, "图片处理失败");
     }
   },
 
@@ -155,7 +156,7 @@ Page({
     try {
       const res = await Store.api("/api/products", { method: "POST", body: check.value });
       const id = res.product ? res.product.id : res.id;
-      ui.ok("已提交，等待审核");
+      ui.ok("已提交，等待平台审核");
       setTimeout(() => {
         if (id) wx.redirectTo({ url: `/pages/product/product?id=${id}` });
         else wx.switchTab({ url: "/pages/market/market" });

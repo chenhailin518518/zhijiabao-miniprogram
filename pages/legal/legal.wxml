@@ -28,6 +28,6 @@
   </view>
 
   <view class="foot-note">
-    <text class="muted tiny">如对上述条款有疑问，欢迎通过项目仓库提交 issue 反馈。</text>
+    <text class="muted tiny">如对上述条款有疑问，可通过项目仓库提交 issue 反馈。</text>
   </view>
 </view>

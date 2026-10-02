@@ -3,18 +3,23 @@
   本文件由 Web 版 store.js 移植而来，只改了三件事：存储 API、HTTP 请求、URL 解析。
   Store / Local / LocalApi 三段业务实现与原版逐行对应，没有改语义，
   因此 Web 端与小程序端的行为保持一致（同一套订单状态机、同一套校验、同一套演示数据）。
-  运行模式：
-    API_BASE 留空 -> 本地演示模式，数据落在小程序本地存储，无网络也能完整跑通全部流程
-    API_BASE 填 https 域名 -> 在线模式，走真实后端
+
+  运行模式（probe 按顺序判定）：
+    cloud    CLOUD.enabled 为真且云端探得通 —— 数据落云数据库，见 utils/cloud-api.js
+    online   API_BASE 填了 https 域名且 /api/health 返回本服务标识 —— 走自建后端
+    offline  上面都不成立 —— 本地演示模式，数据落在小程序本地存储，无网络也能跑通全部流程
 */
 "use strict";
 
-const { API_BASE } = require("./config.js");
+const { API_BASE, CLOUD } = require("./config.js");
 
 /* 站点字典与定价引擎必须先加载：它们在 globalThis 上挂载 ZhijiabaoData / ZhijiabaoPricing，
    下面业务代码启动时就会读取这两个全局对象。 */
 require("./site-data.js");
 require("./pricing.js");
+
+/* 云端模式的数据层。放在 pricing.js 之后 require：它启动时就要读那两个全局对象。 */
+const CloudApi = require("./cloud-api.js");
 
 /* =========================
    小程序适配层
@@ -212,23 +217,31 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
         this.token = storage.getItem(TOKEN_KEY) || "";
       } catch { this.token = ""; }
       this.mode = await this.probe();
-      if (this.mode === "online") {
+      if (this.mode === "offline") {
+        const db = Local.load();
+        this.user = db.users.find((u) => u.id === db.sessionUserId) || null;
+        this.counts = this.user ? LocalApi.localCounts(db, this.user) : {};
+        console.warn("[store] 已切换为本地演示模式：数据仅保存在本机。" + (this.modeNote ? `（${this.modeNote}）` : ""));
+      } else {
         try {
           const me = await this.api("/api/auth/me");
           this.user = me.user;
           this.counts = me.counts || {};
-        } catch { /* 未登录或令牌过期 */ }
-      } else {
-        const db = Local.load();
-        this.user = db.users.find((u) => u.id === db.sessionUserId) || null;
-        this.counts = this.user ? LocalApi.localCounts(db, this.user) : {};
-        console.warn("[store] 未检测到后端服务，已切换为本地演示模式：数据仅保存在当前浏览器。");
+        } catch (e) { /* 未登录，或云端还没准备好资料行，都不影响浏览 */ }
       }
+      this.emit();
       this.track("page_view", { path: "miniprogram" });
       return this.mode;
     },
 
     async probe() {
+      /* 云服务优先：CLOUD.enabled 打开就先探云端，探不通再往后降 */
+      if (CLOUD.enabled) {
+        const res = await CloudApi.probe();
+        if (res.ok) return "cloud";
+        this.modeNote = res.reason || "云服务探测失败";
+        return "offline";
+      }
       /* 未配置 API_BASE 时直接判定本地演示模式，不发出无用请求 */
       if (!this.apiBase) return "offline";
       try {
@@ -264,6 +277,9 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
     },
 
     async api(path, { method = "GET", body, headers = {} } = {}) {
+      if (this.mode === "cloud") {
+        return CloudApi.handle(path, method, body || {}, this);
+      }
       if (this.mode === "online") {
         const res = await wxRequest({
           url: `${this.apiBase}${path}`,
@@ -277,10 +293,10 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
         });
         let data = res.data;
         if (typeof data === "string") {
-          try { data = JSON.parse(data); } catch (e) { throw new Error("服务端返回了非 JSON 响应"); }
+          try { data = JSON.parse(data); } catch (e) { throw new Error("服务端返回内容格式异常，请稍后重试"); }
         }
         if (!res.ok || (data && data.ok === false)) {
-          throw new Error((data && data.message) || `请求失败（${res.status}）`);
+          throw new Error((data && data.message) || `请求失败（错误码 ${res.status}），请稍后重试`);
         }
         return data;
       }
@@ -289,16 +305,27 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
 
     /* ---------- 账号 ---------- */
     async sendCode(phone, purpose = "login") {
+      if (this.mode === "cloud") return CloudApi.auth.sendCode(phone, purpose);
       const data = await this.api("/api/auth/code", { method: "POST", body: { phone, purpose } });
       return data.devCode;
     },
     async register(payload) {
+      if (this.mode === "cloud") {
+        const user = await CloudApi.auth.register(payload);
+        this.setUser(user);
+        return user;
+      }
       const data = await this.api("/api/auth/register", { method: "POST", body: payload });
       this.applySession(data);
       return data.user;
     },
-    async login({ phone, password, code }) {
-      const data = await this.api("/api/auth/login", { method: "POST", body: { phone, password, code } });
+    async login(payload) {
+      if (this.mode === "cloud") {
+        const user = await CloudApi.auth.login(payload || {});
+        this.setUser(user);
+        return user;
+      }
+      const data = await this.api("/api/auth/login", { method: "POST", body: payload });
       this.applySession(data);
       return data.user;
     },
@@ -310,6 +337,13 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
       if (data.user) this.setUser(data.user);
     },
     async logout() {
+      if (this.mode === "cloud") {
+        await CloudApi.auth.logout();
+        this.user = null;
+        this.counts = {};
+        this.emit();
+        return;
+      }
       try { await this.api("/api/auth/logout", { method: "POST" }); } catch { /* ignore */ }
       this.token = "";
       this.user = null;
@@ -318,29 +352,57 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
       this.emit();
     },
     async refresh() {
+      if (this.mode === "cloud") {
+        const data = await CloudApi.auth.refresh();
+        this.setUser(data.user, data.counts);
+        return data;
+      }
       const data = await this.api("/api/auth/me");
       this.setUser(data.user, data.counts);
       return data;
     },
     async updateProfile(payload) {
+      if (this.mode === "cloud") {
+        const user = await CloudApi.auth.updateProfile(payload);
+        this.setUser(user);
+        return user;
+      }
       const data = await this.api("/api/me", { method: "PATCH", body: payload });
       this.setUser(data.user);
       return data.user;
     },
     async verifyRealname(payload) {
+      if (this.mode === "cloud") {
+        const user = await CloudApi.auth.verifyRealname(payload);
+        this.setUser(user);
+        return user;
+      }
       const data = await this.api("/api/me/realname", { method: "POST", body: payload });
       this.setUser(data.user);
       return data.user;
     },
     async withdraw(amount) {
+      if (this.mode === "cloud") {
+        const user = await CloudApi.auth.withdraw(amount);
+        this.setUser(user);
+        return user;
+      }
       const data = await this.api("/api/me/withdraw", { method: "POST", body: { amount } });
       this.setUser(data.user);
       return data.user;
     },
     async resetPassword(payload) {
+      if (this.mode === "cloud") return CloudApi.auth.resetPassword(payload);
       return this.api("/api/auth/reset-password", { method: "POST", body: payload });
     },
     async closeAccount() {
+      if (this.mode === "cloud") {
+        await CloudApi.auth.closeAccount();
+        this.user = null;
+        this.counts = {};
+        this.emit();
+        return;
+      }
       await this.api("/api/me", { method: "DELETE" });
       this.token = "";
       this.user = null;
@@ -600,9 +662,9 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
           case "POST /api/addresses": {
             const user = me();
             const list = db.addresses.filter((a) => a.userId === user.id);
-            if (list.length >= 10) this.fail("最多保存 10 个收货地址");
+            if (list.length >= 10) this.fail("最多可保存 10 个收货地址");
             if (!/^1[3-9]\d{9}$/.test(String(body.phone || ""))) this.fail("请输入有效收件人手机号");
-            if (String(body.detail || "").trim().length < 4) this.fail("请填写详细地址（至少 4 个字符）");
+            if (String(body.detail || "").trim().length < 4) this.fail("请填写详细地址（不少于 4 个字符）");
             const isDefault = body.isDefault || list.length === 0 ? 1 : 0;
             if (isDefault) list.forEach((a) => { a.isDefault = 0; });
             const row = {
@@ -807,7 +869,7 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
             db.users.filter((u) => u.isAdmin).forEach((a) => this.notify(db, a.id, "audit", "收到新的举报", `${row.targetType} · ${row.reason}`, "/admin/"));
             this.audit(db, user.id, "report", `${row.targetType}:${row.targetId}`, row.reason);
             Local.save(db);
-            return { ok: true, id: row.id, message: "举报已提交，平台将在 24 小时内处理（本地演示模式下由你在后台自行处理）" };
+            return { ok: true, id: row.id, message: "举报已提交，平台将在 24 小时内处理（本地演示模式下由您在后台自行处理）" };
           }
           case "POST /api/events": {
             const user = this.current(db, store);
@@ -853,7 +915,7 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
             const text = String(body.body || "").trim();
             if (text.length < 2 || text.length > 100) this.fail("问题需为 2-100 个字符");
             db.questions.unshift({ id: parseInt(nextId("9"), 36) % 1000000, productId: id, userId: user.id, asker: user.nickname, body: text, answer: "", createdAt: now(), answeredAt: null });
-            this.notify(db, row.ownerId, "question", "有买家向你提问", text, `/market/?id=${id}`);
+            this.notify(db, row.ownerId, "question", "有买家向您提问", text, `/market/?id=${id}`);
             Local.save(db);
             return { ok: true, message: "提问已提交" };
           }
@@ -921,7 +983,7 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
             if (exist) { exist.priceAlert = 1; exist.alertPrice = price; }
             else db.favorites.push({ userId: user.id, productId: id, priceAlert: 1, alertPrice: price, createdAt: now() });
             Local.save(db);
-            return { ok: true, message: `已设置降价提醒：低于 ¥${price} 时通知你` };
+            return { ok: true, message: `已设置降价提醒：低于 ¥${price} 时通知您` };
           }
         }
 
@@ -933,7 +995,7 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
           if (product && product.ownerId !== user.id && !user.isAdmin) this.fail("只有卖家可以回答");
           row.answer = String(body.answer || "").trim().slice(0, 200);
           row.answeredAt = now();
-          this.notify(db, row.userId, "question", "卖家已回答你的提问", row.answer, `/market/?id=${row.productId}`);
+          this.notify(db, row.userId, "question", "卖家已回答您的提问", row.answer, `/market/?id=${row.productId}`);
           Local.save(db);
           return { ok: true, message: "回答已提交" };
         }
@@ -950,7 +1012,7 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
 
           if (route === `POST /api/orders/${seg[2]}/review`) {
             if (order.status !== "已完成") this.fail("订单完成后才能评价");
-            if (db.reviews.some((r) => r.orderId === order.id && r.fromUser === user.id)) this.fail("你已经评价过该订单");
+            if (db.reviews.some((r) => r.orderId === order.id && r.fromUser === user.id)) this.fail("您已经评价过该订单");
             const score = Math.round(Number(body.score));
             if (!(score >= 1 && score <= 5)) this.fail("评分需为 1-5 星");
             const toUser = isBuyer ? order.sellerId : order.buyerId;
@@ -963,7 +1025,7 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
             this.recalc(db, target);
             this.notify(db, toUser, "review", "收到一条新评价", `${score} 星：${body.content || "对方未填写评价内容"}`, "/profile/");
             Local.save(db);
-            return { ok: true, message: "评价已提交，感谢你的反馈" };
+            return { ok: true, message: "评价已提交，感谢您的反馈" };
           }
 
           const transitions = {
@@ -979,8 +1041,8 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
             const t = transitions[key];
             if (t.actor === "buyer" && !isBuyer && !user.isAdmin) this.fail("只有买家可以执行该操作");
             if (t.actor === "seller" && !isSeller && !user.isAdmin) this.fail("只有卖家可以执行该操作");
-            if (!P.canTransition(order.status, t.to)) this.fail(`订单当前状态为「${order.status}」，不能变更为「${t.to}」`);
-            if (key === "refund" && String(body.reason || "").trim().length < 4) this.fail("请填写至少 4 个字的售后原因");
+            if (!P.canTransition(order.status, t.to)) this.fail(`订单当前状态为「${order.status}」，无法变更为「${t.to}」`);
+            if (key === "refund" && String(body.reason || "").trim().length < 4) this.fail("请填写售后原因（不少于 4 个字）");
             if (key === "ship" && t.fields.trackingNo && !/^[A-Za-z0-9-]{6,24}$/.test(t.fields.trackingNo)) this.fail("快递单号格式不正确");
             Object.assign(order, t.fields, { status: t.to, updatedAt: now() });
             order.timeline.push({ at: now(), label: t.label, extra: t.extra });
@@ -1073,7 +1135,7 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
         /* ---- 本地模式下的运营后台 ---- */
         if (route.startsWith("GET /api/admin/") || route.startsWith("POST /api/admin/")) {
           const user = me();
-          if (!user.isAdmin) this.fail("需要管理员权限（本地演示模式请用 18800000000 / admin888 登录）");
+          if (!user.isAdmin) this.fail("需要管理员权限（本地演示模式请使用 18800000000 / admin888 登录）");
           if (route === "GET /api/admin/stats") return { ok: true, stats: this.localStats(db) };
           if (route === "GET /api/admin/products") {
             const status = q.status || "待审核";
@@ -1144,12 +1206,14 @@ function wxRequest({ url, method = "GET", headers = {}, body, timeout = 10000 })
           me();
           if (!/^data:image\/(png|jpe?g|webp);base64,/.test(String(body.dataUrl || ""))) this.fail(`仅支持 ${D.UPLOAD.acceptLabel} 格式的图片`);
           const size = Math.round(String(body.dataUrl).length * 0.75);
-          if (size > D.UPLOAD.maxUploadBytes) this.fail(`压缩后仍超过 ${D.formatMb(D.UPLOAD.maxUploadBytes)}，请换一张更小的图片`);
+          if (size > D.UPLOAD.maxUploadBytes) this.fail(`压缩后仍超过 ${D.formatMb(D.UPLOAD.maxUploadBytes)}，请更换尺寸更小的图片`);
           /* 本地模式直接把 dataURL 存进商品记录 */
           return { ok: true, url: String(body.dataUrl) };
         }
 
-        this.fail(`本地演示模式暂不支持该接口：${route}`);
+        /* 面向用户的提示不含路径；未覆盖的接口在控制台留痕，便于开发期定位 */
+        console.warn("[store] 本地演示模式尚未覆盖该接口：", route);
+        this.fail(`本地演示模式暂不支持该操作。`);
         return null;
       })();
       return Promise.resolve(result);

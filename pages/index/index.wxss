@@ -13,6 +13,59 @@
   color: #f7f4ec;
 }
 
+/* ============ 平台实时数据 ============ */
+.stat-row {
+  display: grid;
+  gap: 12rpx;
+}
+
+.stat-row + .stat-row {
+  margin-top: 12rpx;
+}
+
+.stat-row-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.stat-row-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.stat-value-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6rpx;
+}
+
+/* 评分卡：首屏的信任锚点，用茶棕从一排白卡里拎出来 */
+.stat-score {
+  background: linear-gradient(180deg, rgba(213, 189, 146, 0.24), rgba(213, 189, 146, 0.06));
+  border-color: rgba(171, 132, 91, 0.34);
+}
+
+.stat-score .stat-value {
+  font-size: 44rpx;
+  color: var(--tea);
+}
+
+.stat-star {
+  font-size: 24rpx;
+  color: var(--tea);
+}
+
+/* 零值指标：沉到背景里，别让首屏第一眼就撞见 0 */
+.stat-row-muted .stat {
+  background: transparent;
+  border-color: transparent;
+}
+
+.stat-blank .stat-value {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: var(--muted);
+}
+
 .module {
   position: relative;
   background: var(--surface);

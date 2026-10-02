@@ -3,11 +3,11 @@
   <!-- 未登录 -->
   <view wx:if="{{!loading && !isLogin}}" class="card login-card">
     <text class="kicker">Profile Center</text>
-    <text class="h2">登录后使用完整能力</text>
-    <text class="muted small login-desc">估价记录、收藏、订单与售后都挂在账号下；集市浏览与 AI 估价无需登录即可体验。</text>
+    <text class="h2">登录后可使用完整功能</text>
+    <text class="muted small login-desc">估价记录、收藏、订单与售后均与账号关联；集市浏览与 AI 估价无需登录即可使用。</text>
     <view class="btn-row">
       <button class="btn" bindtap="goLogin">立即登录</button>
-      <button class="btn btn-ghost" bindtap="goEstimate">先去估价</button>
+      <button class="btn btn-ghost" bindtap="goEstimate">体验 AI 估价</button>
     </view>
     <view class="divider"></view>
     <view class="list-row" bindtap="goLegal">
@@ -39,7 +39,7 @@
       <view class="progress-track">
         <view class="progress-fill" style="width: {{creditPercent}}%"></view>
       </view>
-      <text class="muted tiny">信用分影响曝光与交易权限，完成实名、按时发货、获得好评都会加分</text>
+      <text class="muted tiny">信用分影响曝光与交易权限，完成实名认证、按时发货、获得好评均可加分</text>
     </view>
 
     <!-- 数据 -->

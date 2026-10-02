@@ -3,6 +3,7 @@ const D = require("../../utils/data.js");
 const P = require("../../utils/pricing.js");
 const ui = require("../../utils/ui.js");
 const Weather = require("../../utils/weather.js");
+const Upload = require("../../utils/upload.js");
 
 /* 估价时的分步展示，描述的是真实发生的计算环节 */
 const STEP_DURATION = 240;
@@ -43,13 +44,16 @@ Page({
   },
 
   async onLoad() {
-    const today = ui.formatDate(new Date());
     this.setData({
       theme: getApp().getTheme(),
       scenicRange: D.SCENICS.map((s) => s.id),
       categoryRange: D.CATEGORIES,
-      conditionRange: D.CONDITIONS.map((c) => `${c.value} · ${c.desc}`),
-      boughtAt: today
+      conditionRange: D.CONDITIONS.map((c) => `${c.value} · ${c.desc}`)
+      /*
+        boughtAt 保持为空。
+        填成当天会让每次估价都自带「购入 1 年内 +2%」并多加 4 点置信度，
+        用户没填却按填了算；原版 Web 的 date 输入框也是空的。
+      */
     });
     const mode = await ready();
     this.setData({ mode });
@@ -74,7 +78,7 @@ Page({
       });
     } catch (e) {
       this.weather = null;
-      this.setData({ weatherText: "天气不可用，按中性因子 1.000 计算", weatherIsDegraded: true });
+      this.setData({ weatherText: "天气数据不可用，按中性因子 1.000 计算", weatherIsDegraded: true });
     }
   },
 
@@ -134,22 +138,16 @@ Page({
 
   async choosePhoto() {
     try {
-      const res = await new Promise((resolve, reject) => {
-        wx.chooseMedia({
-          count: 1,
-          mediaType: ["image"],
-          sizeType: ["compressed"],
-          sourceType: ["album", "camera"],
-          success: resolve,
-          fail: reject
-        });
-      });
-      const file = res.tempFiles && res.tempFiles[0];
-      if (!file) return;
-      this.setData({ photo: file.tempFilePath });
+      ui.loading("处理图片");
+      const path = await Upload.pickOne();
+      ui.hideLoading();
+      if (!path) return;
+      this.setData({ photo: path });
       ui.toast("图片已添加，仅作留档，不参与价格计算");
     } catch (e) {
-      /* 用户取消不提示 */
+      ui.hideLoading();
+      /* 用户主动取消不提示，其余失败才报 */
+      if (e && !e.cancelled) ui.fail(e, "图片添加失败");
     }
   },
 
@@ -164,7 +162,7 @@ Page({
 
     const original = Math.round(Number(this.data.originalPrice) || 0);
     if (original < 1 || original > 200000) {
-      ui.toast("请填写 1 到 200000 之间的购买原价");
+      ui.toast("请填写 1 至 200000 之间的购买原价");
       return;
     }
 
@@ -193,7 +191,7 @@ Page({
 
     const weather = this.weather;
     const steps = [
-      ["读取结构化特征", `${payload.condition} / ${payload.category} / 购入 ${payload.boughtAt || "未填"}`],
+      ["读取结构化特征", `${payload.condition} / ${payload.category} / 购入 ${payload.boughtAt || "未填写"}`],
       ["匹配景区保值系数", payload.scenic],
       ["采集实时天气", weather && !weather.isDegraded ? `${weather.weatherLabel} ${weather.temperature}°C` : "使用中性因子"],
       ["计算季节与供需", P.getSeasonFactor().label],
@@ -215,6 +213,8 @@ Page({
       hasCertificate: payload.hasCertificate,
       hasPackage: payload.hasPackage,
       flawed: payload.flawed,
+      /* 这两项参与「购入时间」加成与置信度，漏传就等于界面填了不算数 */
+      boughtAt: payload.boughtAt,
       category: payload.category,
       note: payload.note
     }, weather);
@@ -276,7 +276,7 @@ Page({
 
   async deleteHistory(e) {
     const id = e.currentTarget.dataset.id;
-    const yes = await ui.confirm("删除这条估价记录？", "删除记录");
+    const yes = await ui.confirm("确认删除这条估价记录？", "删除记录");
     if (!yes) return;
     try {
       await Store.api(`/api/estimates/${id}`, { method: "DELETE" });
@@ -324,6 +324,6 @@ Page({
   },
 
   onShareAppMessage() {
-    return { title: "智价宝 AI 估价 · 给景区文创一个参考价", path: "/pages/estimate/estimate" };
+    return { title: "智价宝 AI 估价 · 景区文创价格参考", path: "/pages/estimate/estimate" };
   }
 });
